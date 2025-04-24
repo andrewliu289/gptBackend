@@ -55,15 +55,20 @@ class GPTModelHandler:
 
     def predict(self, prompt: str) -> dict:
         try:
-            input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.model.device)
+            tokens = self.tokenizer(prompt, return_tensors="pt", padding=True)
+            input_ids = tokens["input_ids"].to(self.model.device)
+            attention_mask = tokens["attention_mask"].to(self.model.device)
+
             with torch.no_grad():
                 outputs = self.model.generate(
-                    input_ids=input_ids,
-                    max_new_tokens=128,
-                    temperature=0.7,
-                    top_p=0.9,
-                    do_sample=True,
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=128,
+                temperature=0.7,
+                top_p=0.9,
+                do_sample=True,
                 )
+
             generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             return {"prediction_gpt": generated_text}
         except Exception as e:
