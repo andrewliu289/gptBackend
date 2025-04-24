@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from gpt import GPTModelHandler
 import torch
 
 app = Flask(__name__)
+CORS(app)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 gpt_model_handler = GPTModelHandler(device)
