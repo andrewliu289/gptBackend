@@ -1,11 +1,9 @@
 from flask import Flask, request, jsonify
 from gpt import GPTModelHandler
 import torch
-import os
 
 app = Flask(__name__)
 
-# Initialize model handler
 device = "cuda" if torch.cuda.is_available() else "cpu"
 gpt_model_handler = GPTModelHandler(device)
 

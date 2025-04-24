@@ -2,6 +2,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import torch
 import importlib.util
 import warnings
+from peft import PeftModel
 
 class GPTModelHandler:
     def __init__(self, device: str):
@@ -9,15 +10,15 @@ class GPTModelHandler:
         self.base_model_id = "meta-llama/Llama-3.2-3B"
         self.device = device  # "cuda" or "cpu"
 
-        print("Loading tokenizer …")
+        print("Loading tokenizer")
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.adapter_path, trust_remote_code=True
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Try 4-bit with bitsandbytes > fall back to FP16 if that fails
         quant_kwargs = {}
         can_quantise = False
+
         if device == "cuda":
             if importlib.util.find_spec("bitsandbytes") is not None:
                 try:
@@ -41,32 +42,35 @@ class GPTModelHandler:
 
         dtype = torch.float16 if device == "cuda" else torch.float32
 
-        print("Loading base model …")
+        print("Loading base model")
         base_model = AutoModelForCausalLM.from_pretrained(
             self.base_model_id,
             torch_dtype=None if can_quantise else dtype,
-            device_map="auto" if device == "cuda" else None,
+            device_map="auto" if can_quantise else None,
             trust_remote_code=True,
             **quant_kwargs,
         )
 
-        # Always load the QLoRA adapter
-        from peft import PeftModel
+        print("Loading QLoRA adapter")
         self.model = PeftModel.from_pretrained(base_model, self.adapter_path).to(device)
         self.model.eval()
         print(f"Model ready on {device}")
 
-        # Text-generation pipeline
-        self.generator = pipeline(
-            "text-generation",
+        # Pipeline config
+        pipeline_kwargs = dict(
+            task="text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
-            device=0 if device == "cuda" else -1,
             max_new_tokens=128,
             temperature=0.7,
             top_p=0.9,
             do_sample=True,
         )
+
+        if not can_quantise:
+            pipeline_kwargs["device"] = 0 if device == "cuda" else -1
+
+        self.generator = pipeline(**pipeline_kwargs)
 
     def predict(self, prompt: str) -> dict:
         try:
