@@ -30,6 +30,11 @@ def predict_gpt():
     except Exception as e:
         print("EXCEPTION:", str(e))
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/ping", methods=["GET"])
+def ping():
+    return jsonify({"message": "pong"}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
