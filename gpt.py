@@ -1,5 +1,4 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
 import torch
 import importlib.util
 import warnings
@@ -59,7 +58,7 @@ class GPTModelHandler:
                 outputs = self.model.generate(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    max_new_tokens=256,
+                    max_new_tokens=128,
                     temperature=0.7,
                     top_p=0.9,
                     do_sample=True,
