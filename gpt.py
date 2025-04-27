@@ -11,7 +11,7 @@ class GPTModelHandler:
 
         print("Loading tokenizer")
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.self.model_id,
+            self.model_id,
             trust_remote_code=True
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -37,15 +37,6 @@ class GPTModelHandler:
                 warnings.warn("bitsandbytes not installed; falling back to FP16.")
 
         dtype = torch.float16 if device == "cuda" else torch.float32
-
-        print("Loading base model")
-        base_model = AutoModelForCausalLM.from_pretrained(
-            self.base_model_id,
-            torch_dtype=None if can_quantise else dtype,
-            device_map="auto" if device == "cuda" else None,
-            trust_remote_code=True,
-            **quant_kwargs,
-        )
 
         print("Loading model")
         self.model = AutoModelForCausalLM.from_pretrained(
