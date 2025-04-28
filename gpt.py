@@ -31,9 +31,9 @@ class GPTModelHandler:
                     can_quantise = True
                     print("Using bitsandbytes 4-bit NF4 loading")
                 except Exception as e:
-                    warnings.warn(f"bitsandbytes not usable ({e}); falling back to FP16.")
+                    warnings.warn(f"bitsandbytes not usable -> FP16")
             else:
-                warnings.warn("bitsandbytes not installed; falling back to FP16.")
+                warnings.warn("bitsandbytes not installed -> FP16.")
 
         dtype = torch.float16 if device == "cuda" else torch.float32
 
@@ -48,27 +48,33 @@ class GPTModelHandler:
         self.model.eval()
         print(f"Model ready on {device}")
 
-    def predict(self, prompt: str) -> dict:
+    def predict(self, prompt: str, max_new_tokens: int = 100) -> dict:
         try:
-            tokens = self.tokenizer(prompt, return_tensors="pt", padding=True)
+            # Tokenize input
+            tokens = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
             input_ids = tokens["input_ids"].to(self.model.device)
             attention_mask = tokens["attention_mask"].to(self.model.device)
 
+            # Generate response
             with torch.no_grad():
                 outputs = self.model.generate(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    max_new_tokens=128,
-                    temperature=0.7,
-                    top_p=0.9,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,  # Greedy decoding
                     repetition_penalty=1.2,
-                    do_sample=True,
-                    early_stopping=True,
-                    eos_token_id=self.tokenizer.eos_token_id,  # Stop at eos
-                    pad_token_id=self.tokenizer.pad_token_id
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.pad_token_id,
                 )
 
-            generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            return {"prediction_gpt": generated_text}
+            # Decode and clean output
+            decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            decoded_output = decoded_output.strip()
+
+            # Remove prompt from output (optional)
+            if decoded_output.startswith(prompt):
+                decoded_output = decoded_output[len(prompt):].strip()
+
+            return {"prediction_gpt": decoded_output}
         except Exception as e:
             return {"error": str(e)}
