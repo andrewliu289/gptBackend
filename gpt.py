@@ -5,7 +5,7 @@ import warnings
 
 class GPTModelHandler:
     def __init__(self, device: str):
-        self.model_id = "VishnuT/llama3-merged-phase2.3"
+        self.model_id = "VishnuT/llama3-merged-phase2.2"
         self.device = device
 
         print("Loading tokenizer")
