@@ -2,7 +2,3 @@ Flask
 flask-cors
 transformers
 torch
-scikit-learn
-nltk
-pillow
-opencv-python
